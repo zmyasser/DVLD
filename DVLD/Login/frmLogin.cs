@@ -36,7 +36,7 @@ namespace DVLD.Login
                 if (chkRememberMe.Checked)
                 {
                     //store username and password
-                    RememberUsernameAndPassword(txtUserName.Text.Trim(), txtPassword.Text.Trim());
+                    RememberUsernameAndPassword(txtUserName.Text.Trim(), txtPassword.Text.Trim());   
                 }
                 
                 else
