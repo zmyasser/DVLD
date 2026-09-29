@@ -15,23 +15,16 @@ namespace DVLD.Classes
     {
         public static clsUser CurrentUser;
 
-        public static bool RememberUsernameAndPassword(string UsernameVal, string PasswordVal)
+        public static bool RememberUsernameAndPassword(string Username, string Password)
         {
 
             string keyPath = @"HKEY_CURRENT_USER\SOFTWARE\DVLD_Program";
 
-            string UserName = "Username";
-            string UsernameValue = UsernameVal;
-
-            string Password = "Password";
-            string PasswordValue = PasswordVal;
-
-
             try
             {
                 // Write the value to the Registry
-                Registry.SetValue(keyPath, UserName, UsernameValue, RegistryValueKind.String);
-                Registry.SetValue(keyPath, Password, PasswordValue, RegistryValueKind.String);
+                Registry.SetValue(keyPath, "Username", Username, RegistryValueKind.String);
+                Registry.SetValue(keyPath, "Password", Password, RegistryValueKind.String);
                 return true;
             }
 
@@ -40,8 +33,6 @@ namespace DVLD.Classes
                 MessageBox.Show($"An error occurred: {ex.Message}");
                 return false;
             }
-
-
         }
 
         public static bool GetStoredCredential(ref string Username, ref string Password)
@@ -61,7 +52,6 @@ namespace DVLD.Classes
                 Console.WriteLine($"An error occurred: {ex.Message}");
                 return false;
             }
-
         }
     }
 }
