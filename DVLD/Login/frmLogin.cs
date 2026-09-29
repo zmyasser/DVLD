@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -15,6 +16,10 @@ namespace DVLD.Login
 {
     public partial class frmLogin : Form
     {
+
+        private enum enLoginStatus : byte {enFailedToLoginAfterThreeTrials, enLoginSucceeded }
+        private byte _logTrials = 0;
+
         public frmLogin()
         {
             InitializeComponent();
@@ -26,8 +31,48 @@ namespace DVLD.Login
             this.Close();
         }
 
+        private bool WriteErrorEventToTheEventViewer(enLoginStatus loginInfo)
+        {
+           
+            string sourceName = "DVLD_Program";
+
+            try
+            {
+                // Create the event source if it does not exist
+                if (!EventLog.SourceExists(sourceName))
+                {
+                    EventLog.CreateEventSource(sourceName, "Application");
+                }
+
+                switch (loginInfo)
+                {
+                    case enLoginStatus.enFailedToLoginAfterThreeTrials:
+                        {
+                            MessageBox.Show("The system is locked, please try again!", "System Locked", MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                            EventLog.WriteEntry(sourceName, "Failed to login after three trials!", EventLogEntryType.Warning);
+                            break;
+                        }
+
+                    case enLoginStatus.enLoginSucceeded:
+                        {
+                            EventLog.WriteEntry(sourceName, $"User {CurrentUser.UserName} has loged to the system!", EventLogEntryType.Information);
+                            break;
+                        }
+                }
+
+                return true;
+            }
+            
+            catch(Exception ex)
+            {
+                MessageBox.Show($"Something went wrong, {ex.Message}");
+                return false;
+            }
+        }
+
         private void btnLogin_Click(object sender, EventArgs e)
         {
+
             clsUser user = clsUser.FindByUsernameAndPassword(txtUserName.Text.Trim(),txtPassword.Text.Trim());
 
             if (user != null) 
@@ -54,6 +99,7 @@ namespace DVLD.Login
                 }
 
                 CurrentUser = user;
+                WriteErrorEventToTheEventViewer(enLoginStatus.enLoginSucceeded);
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             }
@@ -62,6 +108,12 @@ namespace DVLD.Login
             {
                 txtUserName.Focus();
                 MessageBox.Show("Invalid Username/Password.", "Wrong Credentials", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                if (++_logTrials >= 3)
+                {
+                    WriteErrorEventToTheEventViewer(enLoginStatus.enFailedToLoginAfterThreeTrials);
+                    btnLogin.Enabled = false;
+                }
             }    
 
         }
