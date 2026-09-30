@@ -15,6 +15,7 @@ using DVLD.People;
 using DVLD.Controls;
 using System.Runtime.Remoting.Messaging;
 using System.Configuration;
+using System.Security.Cryptography;
 using static DVLD.Classes.clsGlobal;
 
 namespace DVLD.User
@@ -121,6 +122,20 @@ namespace DVLD.User
             ctrlPersonCardWithFilter1.FilterEnabled = false;
         }
 
+        private string _HashPassword(string password)
+        {
+            byte[] salt = new byte[16];
+
+            using (var rng = new RNGCryptoServiceProvider())
+                rng.GetBytes(salt);
+
+            using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 100000))
+            {
+                byte[] hash = pbkdf2.GetBytes(64);
+                return Convert.ToBase64String(salt) + "." + Convert.ToBase64String(hash);
+            }
+        }
+
         private void btnSave_Click(object sender, EventArgs e)
         {
            
@@ -131,9 +146,17 @@ namespace DVLD.User
                 return;
             }
 
+            clsUser user = clsUser.FindByUsername(txtUserName.Text.Trim());
+            if (user != null)
+            {
+                MessageBox.Show("Entered Username is used by another user, please choose another one!", "Username used",
+                    MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                return;
+            }
+
             _User.PersonID = ctrlPersonCardWithFilter1.PersonID;
             _User.UserName = txtUserName.Text.Trim();
-            _User.Password = txtPassword.Text.Trim();
+            _User.Password = _HashPassword(txtPassword.Text.Trim());
             _User.IsActive = chkIsActive.Checked;
 
 

@@ -95,7 +95,7 @@
             this.ctrlPersonCardWithFilter1.ShowAddPerson = true;
             this.ctrlPersonCardWithFilter1.Size = new System.Drawing.Size(837, 399);
             this.ctrlPersonCardWithFilter1.TabIndex = 121;
-             // 
+            // 
             // btnPersonInfoNext
             // 
             this.btnPersonInfoNext.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
@@ -280,7 +280,7 @@
             this.lblTitle.Name = "lblTitle";
             this.lblTitle.Size = new System.Drawing.Size(863, 39);
             this.lblTitle.TabIndex = 118;
-            this.lblTitle.Text = "Edit Application Type";
+            this.lblTitle.Text = "Add New User";
             this.lblTitle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // errorProvider1

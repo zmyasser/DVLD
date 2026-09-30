@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -16,7 +17,7 @@ namespace DVLD.User
     public partial class frmChangePassword : Form
     {
         private int _UserID;
-        private clsUser _User;
+        private clsUser _User = null;
 
         public frmChangePassword(int UserID)
         {
@@ -39,7 +40,7 @@ namespace DVLD.User
 
             _User = clsUser.FindByUserID(_UserID);
 
-            if (_User == null)
+            if (_User is null)
             {
                 MessageBox.Show("Could not Find User with ID = " + _UserID,
                     "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -111,17 +112,31 @@ namespace DVLD.User
             _ResetDefualtValues();
         }
 
+        private string _HashPassword(string password)
+        {
+            byte[] salt = new byte[16];
+
+            using (var rng = new RNGCryptoServiceProvider())
+                rng.GetBytes(salt);
+
+            using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 100000))
+            {
+                byte[] hash = pbkdf2.GetBytes(64);
+                return Convert.ToBase64String(salt) + "." + Convert.ToBase64String(hash);
+            }
+        }
+
         private void btnSave_Click(object sender, EventArgs e)
         {
 
             if (!this.ValidateChildren())
             {
-                MessageBox.Show("Some fileds are not valide!, put the mouse over the red icon(s) to see the error",
+                MessageBox.Show("Some fields are not valide!, put the mouse over the red icon(s) to see the error",
                     "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            _User.Password = txtNewPassword.Text;
+            _User.Password = _HashPassword(txtNewPassword.Text.Trim());
 
             if (_User.Save())
             {
