@@ -7,6 +7,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -31,7 +32,7 @@ namespace DVLD.Login
             this.Close();
         }
 
-        private bool WriteErrorEventToTheEventViewer(enLoginStatus loginInfo)
+        private bool WriteErrorOrInfoEventToTheEventViewer(enLoginStatus loginInfo)
         {
            
             string sourceName = "DVLD_Program";
@@ -70,12 +71,43 @@ namespace DVLD.Login
             }
         }
 
+        private bool _VerifyPassword(string enteredPassword, string storedHash)
+        {
+            // 1. Séparer le sel et le hash en utilisant le point '.'
+            string[] parts = storedHash.Split('.');
+            if (parts.Length != 2) return false;
+
+            // 2. Convertir le sel et le hash stockés de Base64 vers byte[]
+            byte[] salt = Convert.FromBase64String(parts[0]);
+            byte[] storedHashBytes = Convert.FromBase64String(parts[1]);
+
+            // 3. Recalculer le hash du mot de passe saisi avec le sel extrait (100 000 itérations)
+            using (var pbkdf2 = new Rfc2898DeriveBytes(enteredPassword, salt, 100000))
+            {
+                byte[] computedHash = pbkdf2.GetBytes(64);
+
+                // 4. Comparer le hash calculé avec le hash stocké
+                return _SlowEquals(storedHashBytes, computedHash);
+            }
+        }
+
+        // Méthode pour éviter les attaques temporelles (Timing Attacks)
+        private bool _SlowEquals(byte[] a, byte[] b)
+        {
+            uint diff = (uint)a.Length ^ (uint)b.Length;
+            for (int i = 0; i < a.Length && i < b.Length; i++)
+            {
+                diff |= (uint)(a[i] ^ b[i]);
+            }
+            return diff == 0;
+        }
+
         private void btnLogin_Click(object sender, EventArgs e)
         {
 
-            clsUser user = clsUser.FindByUsernameAndPassword(txtUserName.Text.Trim(),txtPassword.Text.Trim());
+            clsUser user = clsUser.FindByUsername(txtUserName.Text.Trim());
 
-            if (user != null) 
+            if (user != null && _VerifyPassword(txtPassword.Text.Trim(), user.Password)) 
             { 
 
                 if (chkRememberMe.Checked)
@@ -91,7 +123,7 @@ namespace DVLD.Login
                 }
 
                 //incase the user is not active
-                if (!user.IsActive )
+                if (!user.IsActive)
                 {
                     txtUserName.Focus();
                     MessageBox.Show("Your account is not Active, Contact Admin!", "inActive Account", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -99,7 +131,8 @@ namespace DVLD.Login
                 }
 
                 CurrentUser = user;
-                WriteErrorEventToTheEventViewer(enLoginStatus.enLoginSucceeded);
+                CurrentUser.Password = txtPassword.Text.Trim();
+                WriteErrorOrInfoEventToTheEventViewer(enLoginStatus.enLoginSucceeded);
                 this.DialogResult = DialogResult.OK;
                 this.Close();
             }
@@ -111,7 +144,7 @@ namespace DVLD.Login
 
                 if (++_logTrials >= 3)
                 {
-                    WriteErrorEventToTheEventViewer(enLoginStatus.enFailedToLoginAfterThreeTrials);
+                    WriteErrorOrInfoEventToTheEventViewer(enLoginStatus.enFailedToLoginAfterThreeTrials);
                     btnLogin.Enabled = false;
                 }
             }    
